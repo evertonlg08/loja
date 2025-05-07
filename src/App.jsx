@@ -13,6 +13,7 @@ import Checkout from './pages/Checkout';
 import ProductDetails from './pages/ProductDetails';
 import Favorites from './pages/Favorites';
 import Orders from './pages/Orders';
+import OrderDetails from './pages/OrderDetails';
 import NotFound from './pages/NotFound';
 import Layout from './components/layout/Layout';
 import Categories from './pages/Categories';
@@ -58,6 +59,7 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                <Route path="pedidos/:id" element={<OrderDetails />} />
                 <Route path="categorias" element={<Categories />} />
                 <Route path="marcas" element={<Brands />} />
                 <Route path="*" element={<NotFound />} />

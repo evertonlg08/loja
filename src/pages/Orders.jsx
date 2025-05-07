@@ -3,10 +3,10 @@ import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { useAuth } from '../hooks/useAuth';
+import { useAuthStore } from '../store/authStore';
 
 export default function Orders() {
-    const { user } = useAuth();
+    const { user } = useAuthStore();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -17,14 +17,14 @@ export default function Orders() {
                 setLoading(true);
                 setError(null);
 
-                const q = query(
+                const ordersQuery = query(
                     collection(db, 'orders'),
                     where('userId', '==', user.uid),
                     orderBy('createdAt', 'desc')
                 );
 
-                const querySnapshot = await getDocs(q);
-                const ordersData = querySnapshot.docs.map(doc => ({
+                const snapshot = await getDocs(ordersQuery);
+                const ordersData = snapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data(),
                     createdAt: doc.data().createdAt?.toDate()
@@ -61,26 +61,35 @@ export default function Orders() {
         }
     };
 
-    const formatDate = (date) => {
-        if (!date) return '';
-        return new Intl.DateTimeFormat('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        }).format(date);
+    const getStatusText = (status) => {
+        switch (status) {
+            case 'pending':
+                return 'Pendente';
+            case 'processing':
+                return 'Em processamento';
+            case 'shipped':
+                return 'Enviado';
+            case 'delivered':
+                return 'Entregue';
+            case 'cancelled':
+                return 'Cancelado';
+            default:
+                return status;
+        }
     };
 
     if (loading) {
         return (
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="space-y-4">
+                <div className="animate-pulse space-y-4">
                     {[...Array(3)].map((_, index) => (
-                        <div key={index} className="bg-white rounded-lg shadow-sm p-6 animate-pulse">
+                        <div key={index} className="bg-white rounded-lg shadow-sm p-6">
                             <div className="h-4 bg-gray-200 rounded w-1/4 mb-4" />
-                            <div className="h-4 bg-gray-200 rounded w-1/2 mb-4" />
-                            <div className="h-4 bg-gray-200 rounded w-3/4" />
+                            <div className="space-y-3">
+                                <div className="h-4 bg-gray-200 rounded w-1/2" />
+                                <div className="h-4 bg-gray-200 rounded w-3/4" />
+                                <div className="h-4 bg-gray-200 rounded w-1/3" />
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -117,7 +126,7 @@ export default function Orders() {
             </Helmet>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <h1 className="text-2xl font-bold text-gray-900 mb-8">Meus Pedidos</h1>
+                <h1 className="text-3xl font-bold text-gray-900 mb-8">Meus Pedidos</h1>
 
                 {orders.length === 0 ? (
                     <div className="text-center py-12">
@@ -131,17 +140,17 @@ export default function Orders() {
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 strokeWidth={2}
-                                d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
                             />
                         </svg>
                         <h3 className="mt-2 text-sm font-medium text-gray-900">Nenhum pedido encontrado</h3>
                         <p className="mt-1 text-sm text-gray-500">
-                            Você ainda não fez nenhum pedido.
+                            Faça seu primeiro pedido na nossa loja.
                         </p>
                         <div className="mt-6">
                             <Link
                                 to="/produtos"
-                                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700"
                             >
                                 Ver produtos
                             </Link>
@@ -149,67 +158,81 @@ export default function Orders() {
                     </div>
                 ) : (
                     <div className="space-y-6">
-                        {orders.map(order => (
+                        {orders.map((order) => (
                             <div key={order.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
                                 <div className="p-6">
                                     <div className="flex items-center justify-between mb-4">
                                         <div>
-                                            <h3 className="text-lg font-medium text-gray-900">
+                                            <h2 className="text-lg font-medium text-gray-900">
                                                 Pedido #{order.id.slice(-6)}
-                                            </h3>
-                                            <p className="text-sm text-gray-500">
-                                                {formatDate(order.createdAt)}
+                                            </h2>
+                                            <p className="mt-1 text-sm text-gray-500">
+                                                {order.createdAt?.toLocaleDateString('pt-BR', {
+                                                    day: '2-digit',
+                                                    month: '2-digit',
+                                                    year: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
                                             </p>
                                         </div>
                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                                            {order.status === 'pending' && 'Pendente'}
-                                            {order.status === 'processing' && 'Processando'}
-                                            {order.status === 'shipped' && 'Enviado'}
-                                            {order.status === 'delivered' && 'Entregue'}
-                                            {order.status === 'cancelled' && 'Cancelado'}
+                                            {getStatusText(order.status)}
                                         </span>
                                     </div>
 
-                                    <div className="border-t border-gray-200 pt-4">
-                                        <div className="space-y-4">
-                                            {order.items.map(item => (
-                                                <div key={item.id} className="flex items-center">
-                                                    <img
-                                                        src={item.image}
-                                                        alt={item.name}
-                                                        className="w-16 h-16 object-center object-cover rounded-md"
-                                                    />
-                                                    <div className="ml-4 flex-1">
-                                                        <h4 className="text-sm font-medium text-gray-900">
-                                                            {item.name}
-                                                        </h4>
-                                                        <p className="text-sm text-gray-500">
-                                                            Quantidade: {item.quantity}
-                                                        </p>
-                                                    </div>
-                                                    <p className="text-sm font-medium text-gray-900">
-                                                        R$ {(item.price * item.quantity).toFixed(2)}
-                                                    </p>
-                                                </div>
-                                            ))}
+                                    <div className="border-t border-gray-200 mt-6 pt-6">
+                                        <div className="flow-root">
+                                            <ul className="-my-6 divide-y divide-gray-200">
+                                                {order.items.map((item) => (
+                                                    <li key={item.id} className="py-6 flex">
+                                                        <div className="flex-shrink-0 w-24 h-24 border border-gray-200 rounded-md overflow-hidden">
+                                                            <img
+                                                                src={item.image}
+                                                                alt={item.name}
+                                                                className="w-full h-full object-cover object-center"
+                                                            />
+                                                        </div>
+                                                        <div className="ml-4 flex-1 flex flex-col">
+                                                            <div>
+                                                                <div className="flex justify-between text-base font-medium text-gray-900">
+                                                                    <h3>
+                                                                        <Link to={`/produtos/${item.id}`}>
+                                                                            {item.name}
+                                                                        </Link>
+                                                                    </h3>
+                                                                    <p className="ml-4">
+                                                                        R$ {(item.price * item.quantity).toFixed(2)}
+                                                                    </p>
+                                                                </div>
+                                                                <p className="mt-1 text-sm text-gray-500">
+                                                                    Quantidade: {item.quantity}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                ))}
+                                            </ul>
                                         </div>
+                                    </div>
 
-                                        <div className="border-t border-gray-200 mt-4 pt-4">
-                                            <div className="flex justify-between text-sm">
-                                                <p className="text-gray-500">Subtotal</p>
-                                                <p className="text-gray-900">R$ {order.total.toFixed(2)}</p>
-                                            </div>
-                                            <div className="flex justify-between text-sm mt-2">
-                                                <p className="text-gray-500">Frete</p>
-                                                <p className="text-gray-900">R$ 10.00</p>
-                                            </div>
-                                            <div className="flex justify-between text-base font-medium mt-4">
-                                                <p className="text-gray-900">Total</p>
-                                                <p className="text-gray-900">
-                                                    R$ {(order.total + 10).toFixed(2)}
-                                                </p>
-                                            </div>
+                                    <div className="border-t border-gray-200 mt-6 pt-6">
+                                        <div className="flex justify-between text-base font-medium text-gray-900">
+                                            <p>Total</p>
+                                            <p>R$ {order.total.toFixed(2)}</p>
                                         </div>
+                                        <p className="mt-2 text-sm text-gray-500">
+                                            Frete: R$ {order.shipping.toFixed(2)}
+                                        </p>
+                                    </div>
+
+                                    <div className="mt-6">
+                                        <Link
+                                            to={`/pedidos/${order.id}`}
+                                            className="flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-primary-600 bg-primary-50 hover:bg-primary-100"
+                                        >
+                                            Ver detalhes do pedido
+                                        </Link>
                                     </div>
                                 </div>
                             </div>

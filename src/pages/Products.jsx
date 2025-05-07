@@ -12,58 +12,41 @@ export default function Products() {
     const [error, setError] = useState(null);
     const [searchParams] = useSearchParams();
 
+    const category = searchParams.get('categoria');
+    const brand = searchParams.get('marca');
+    const search = searchParams.get('busca');
+
     useEffect(() => {
         const fetchProducts = async () => {
             try {
                 setLoading(true);
                 setError(null);
 
-                let q = collection(db, 'products');
+                let productsQuery = collection(db, 'products');
 
                 // Aplicar filtros
-                const searchTerm = searchParams.get('search');
-                const category = searchParams.get('category');
-                const brand = searchParams.get('brand');
-                const minPrice = searchParams.get('minPrice');
-                const maxPrice = searchParams.get('maxPrice');
-                const minRating = searchParams.get('minRating');
-                const sortBy = searchParams.get('sortBy');
-
-                // Construir query com filtros
-                if (searchTerm) {
-                    q = query(q, where('name', '>=', searchTerm), where('name', '<=', searchTerm + '\uf8ff'));
-                }
                 if (category) {
-                    q = query(q, where('category', '==', category));
+                    productsQuery = query(productsQuery, where('category', '==', category));
                 }
                 if (brand) {
-                    q = query(q, where('brand', '==', brand));
+                    productsQuery = query(productsQuery, where('brand', '==', brand));
                 }
-                if (minPrice) {
-                    q = query(q, where('price', '>=', Number(minPrice)));
-                }
-                if (maxPrice) {
-                    q = query(q, where('price', '<=', Number(maxPrice)));
-                }
-                if (minRating) {
-                    q = query(q, where('averageRating', '>=', Number(minRating)));
+                if (search) {
+                    productsQuery = query(
+                        productsQuery,
+                        where('name', '>=', search),
+                        where('name', '<=', search + '\uf8ff')
+                    );
                 }
 
-                // Ordenação
-                if (sortBy === 'price_asc') {
-                    q = query(q, orderBy('price', 'asc'));
-                } else if (sortBy === 'price_desc') {
-                    q = query(q, orderBy('price', 'desc'));
-                } else if (sortBy === 'rating') {
-                    q = query(q, orderBy('averageRating', 'desc'));
-                }
+                // Ordenar por data de criação
+                productsQuery = query(productsQuery, orderBy('createdAt', 'desc'));
 
-                const querySnapshot = await getDocs(q);
-                const productsData = querySnapshot.docs.map(doc => ({
+                const snapshot = await getDocs(productsQuery);
+                const productsData = snapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
                 }));
-
                 setProducts(productsData);
             } catch (err) {
                 console.error('Erro ao buscar produtos:', err);
@@ -74,19 +57,18 @@ export default function Products() {
         };
 
         fetchProducts();
-    }, [searchParams]);
+    }, [category, brand, search]);
 
     if (loading) {
         return (
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {[...Array(8)].map((_, index) => (
                         <div key={index} className="bg-white rounded-lg shadow-sm overflow-hidden animate-pulse">
-                            <div className="aspect-w-1 aspect-h-1 w-full bg-gray-200" />
-                            <div className="p-4 space-y-3">
-                                <div className="h-4 bg-gray-200 rounded w-3/4" />
+                            <div className="aspect-w-1 aspect-h-1 bg-gray-200" />
+                            <div className="p-4">
+                                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
                                 <div className="h-4 bg-gray-200 rounded w-1/2" />
-                                <div className="h-4 bg-gray-200 rounded w-1/4" />
                             </div>
                         </div>
                     ))}
@@ -120,47 +102,49 @@ export default function Products() {
     return (
         <>
             <Helmet>
-                <title>Produtos - Loja Esportiva</title>
+                <title>Produtos | Loja Esportiva</title>
             </Helmet>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                    {/* Filtros */}
-                    <div className="lg:col-span-1">
-                        <AdvancedSearch />
-                    </div>
-
-                    {/* Lista de produtos */}
-                    <div className="lg:col-span-3">
-                        {products.length === 0 ? (
-                            <div className="text-center py-12">
-                                <svg
-                                    className="mx-auto h-12 w-12 text-gray-400"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                    />
-                                </svg>
-                                <h3 className="mt-2 text-sm font-medium text-gray-900">Nenhum produto encontrado</h3>
-                                <p className="mt-1 text-sm text-gray-500">
-                                    Tente ajustar seus filtros ou termos de busca.
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {products.map(product => (
-                                    <ProductCard key={product.id} product={product} />
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                <div className="flex items-center justify-between mb-8">
+                    <h1 className="text-2xl font-bold text-gray-900">
+                        {category ? `Produtos - ${category}` :
+                            brand ? `Produtos - ${brand}` :
+                                search ? `Resultados para "${search}"` :
+                                    'Todos os Produtos'}
+                    </h1>
+                    <p className="text-sm text-gray-500">
+                        {products.length} {products.length === 1 ? 'produto encontrado' : 'produtos encontrados'}
+                    </p>
                 </div>
+
+                {products.length === 0 ? (
+                    <div className="text-center py-12">
+                        <svg
+                            className="mx-auto h-12 w-12 text-gray-400"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                        </svg>
+                        <h3 className="mt-2 text-sm font-medium text-gray-900">Nenhum produto encontrado</h3>
+                        <p className="mt-1 text-sm text-gray-500">
+                            Tente ajustar seus filtros ou buscar por outro termo.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {products.map(product => (
+                            <ProductCard key={product.id} product={product} />
+                        ))}
+                    </div>
+                )}
             </div>
         </>
     );
