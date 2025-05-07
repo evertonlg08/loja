@@ -1,0 +1,22 @@
+{
+    "validCheckout": {
+        "fullName": "João Silva",
+        "email": "joao@teste.com",
+        "phone": "11999999999",
+        "address": "Rua Teste, 123",
+        "city": "São Paulo",
+        "state": "SP",
+        "zipCode": "01234-567",
+        "paymentMethod": "credit"
+    },
+    "invalidCheckout": {
+        "fullName": "",
+        "email": "emailinvalido",
+        "phone": "123",
+        "address": "",
+        "city": "",
+        "state": "",
+        "zipCode": "123",
+        "paymentMethod": ""
+    }
+}

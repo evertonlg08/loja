@@ -1,0 +1,23 @@
+{
+    "tenis": {
+        "name": "Tênis Nike Air Max",
+        "category": "Tênis",
+        "price": 599.90,
+        "description": "Tênis Nike Air Max para corrida",
+        "brand": "Nike"
+    },
+    "camiseta": {
+        "name": "Camiseta Adidas",
+        "category": "Camisetas",
+        "price": 129.90,
+        "description": "Camiseta Adidas para treino",
+        "brand": "Adidas"
+    },
+    "short": {
+        "name": "Short Under Armour",
+        "category": "Shorts",
+        "price": 89.90,
+        "description": "Short Under Armour para treino",
+        "brand": "Under Armour"
+    }
+}

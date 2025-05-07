@@ -1,0 +1,17 @@
+{
+    "validUser": {
+        "email": "teste@teste.com",
+        "password": "123456",
+        "name": "Usuário Teste"
+    },
+    "invalidUser": {
+        "email": "invalido@teste.com",
+        "password": "senhaerrada",
+        "name": "Usuário Inválido"
+    },
+    "newUser": {
+        "email": "novo@teste.com",
+        "password": "123456",
+        "name": "Novo Usuário"
+    }
+}
